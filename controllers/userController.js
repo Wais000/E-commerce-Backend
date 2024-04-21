@@ -3,7 +3,8 @@ const asyncHandler = require("express-async-handler");
 const { generateToken } = require("../config/jwtToken");
 const mongoodbValidation = require("../utils/mongoodbValidation");
 const { generateRefreshToken } = require("../config/refreschToken");
-const jwt=require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
+const { response } = require("express");
 
 //create a user
 const createUser = asyncHandler(async (req, res) => {
@@ -90,22 +91,40 @@ const HandelRefreshToken = asyncHandler(async (req, res) => {
   if (!cookie?.refreshToken) throw new Error("No Refresh Token in cookie");
   const refreshToken = cookie.refreshToken;
   const user = await User.findOne({ refreshToken });
-  if(!user) throw new Error ("No Refresh Token in user")
- if (!user) throw new Error("No Refresh Tokenn for this user");
- jwt.verify(refreshToken, process.env.JWT_SECRET,(err, decoded)=>{
-  if(err || user.id !== decoded.id){
-    throw new Error ("something is wrong with your token")
-  }
-  const accessToken = generateToken (user?.id)
-  res.json(accessToken)
- });
+  if (!user) throw new Error("No Refresh Token in user");
+  if (!user) throw new Error("No Refresh Tokenn for this user");
+  jwt.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
+    if (err || user.id !== decoded.id) {
+      throw new Error("something is wrong with your token");
+    }
+    const accessToken = generateToken(user?.id);
+    res.json(accessToken);
+  });
 });
 
 //Logout functionality
 
-const logout = asyncHandler (async (req, res) => {
-
-})
+const logout = asyncHandler(async (req, res) => {
+  const cookie = req.cookies;
+  if (!cookie?.refreshToken) throw new Error("No Refresh Token in cookie");
+  const refreshToken = cookie.refreshToken;
+  const user = await User.findOne({ refreshToken });
+  if (!user) {
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+    });
+    return res.sendStatus(204);
+  }
+  await User.findOneAndUpdate({refreshToken}, {
+    refreshToken: "",
+  });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: true,
+});
+res.sendStatus(204);
+});
 
 
 // update a single user
