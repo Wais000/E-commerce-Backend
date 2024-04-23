@@ -22,25 +22,31 @@ var productSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    // category: {
+    //   type: mongoose.SchemaTypes.ObjectId,
+    //   ref: "Category",
+    // },
     category: {
-      type: mongoose.SchemaTypes.ObjectId,
-      ref: "Category",
+      type:String,
+      // ref: "Category",
     },
     brand: {
       type: String,
-      enum: ["Apple", "Samsung", " Lenovo"],
+      required: true,
     },
     color: {
       type: String,
-      enum: ["Black", "Red", " Green"],
+     required: true,
     },
     quantity: {
       type: Number,
       required: true,
+      // select: false,
     },
-    sild: {
+    sold: {
       type: Number,
       default: 0,
+      // select: false,
     },
     images: {
       type: Array,

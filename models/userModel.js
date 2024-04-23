@@ -29,9 +29,9 @@ var userSchema = new mongoose.Schema(
       type: String,
       default: "user",
     },
-    isBlocked:{
-        type: Boolean,
-        default: false,
+    isBlocked: {
+      type: Boolean,
+      default: false,
     },
     cart: {
       type: Array,
@@ -39,9 +39,9 @@ var userSchema = new mongoose.Schema(
     },
     address: [{ type: mongoose.Schema.Types.ObjectId, ref: "address" }],
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
-    refreshToken:{
-        type: String,
-      }
+    refreshToken: {
+      type: String,
+    },
   },
 
   {
