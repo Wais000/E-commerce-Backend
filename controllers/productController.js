@@ -1,8 +1,10 @@
 // Import required modules and packages
 const { request } = require("express");
-const Product = require("../models/productModules"); // Import Product model
+const User = require("../models/userModel");
+const Product = require("../models/productModel"); // Import Product model
 const asyncHandler = require("express-async-handler"); // Import async handler middleware
-const slugify = require("slugify"); // Import slugify for creating slugs
+const slugify = require("slugify");
+const mongoDbValidation = require ("../utils/mongoDbValidation") // Import slugify for creating slugs
 
 // Function to create a new product
 const createProduct = asyncHandler(async (req, res) => {
@@ -37,7 +39,8 @@ const getSingleProduct = asyncHandler(async (req, res) => {
 
 // Function to update a product by its ID
 const updateProduct = asyncHandler(async (req, res) => {
-  const { id } = req.params; // Extracting the product ID from the request parameters
+  const { id } = req.params;
+  mongoDbValidation(id); // Extracting the product ID from the request parameters
   try {
     // Generate a slug from the title if provided
     if (req.body.title) {
@@ -63,7 +66,8 @@ const updateProduct = asyncHandler(async (req, res) => {
 
 // Function to delete a product by its ID
 const deleteProduct = asyncHandler(async (req, res) => {
-  const { id } = req.params; // Extracting the product ID from the request parameters
+  const { id } = req.params; 
+  mongoDbValidation(id);// Extracting the product ID from the request parameters
   try {
     // Find and delete the product by its ID
     const deleteProduct = await Product.findByIdAndDelete({ _id: id }); // Using _id instead of id
@@ -109,7 +113,8 @@ const getAllProduct = asyncHandler(async (req, res) => {
     query = query.skip(skip).limit(limit); // Apply pagination to the query
     if (req.query.page) {
       const productCount = await Product.countDocuments(); // Get total number of products
-      if (skip >= productCount) // Check if the requested page exceeds the total number of products
+      if (skip >= productCount)
+        // Check if the requested page exceeds the total number of products
         throw new Error("the page you are trying is not exists"); // Throw an error if the page doesn't exist
     }
 
@@ -122,7 +127,93 @@ const getAllProduct = asyncHandler(async (req, res) => {
   }
 });
 
+// add to wishlist
+const addToWishlist = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { prodId } = req.body;
+  try {
+    const user = await User.findById(_id);
+    const alreadyAdded = user.wishlist.find((id) => id.toString() === prodId);
+    if (alreadyAdded) {
+      let user = await User.findByIdAndUpdate(
+        _id,
+        {
+          $pull: { wishlist: prodId },
+        },
+        {
+          new: true,
+        }
+      );
+      res.json(user);
+    } else {
+      let user = await User.findByIdAndUpdate(
+        _id,
+        {
+          $push: {
+            wishlist: prodId,
+          },
+        },
+        { new: true }
+      );
+      res.json(user);
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+});
 
+// ratings
+
+const rating = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { star, prodId } = req.body;
+
+
+try {
+
+  const product = await Product.findById(prodId);
+  let alreadyRated = product.ratings.find(
+    (userId) => userId.postedby.toString() === _id.toString()
+  );
+
+  if (alreadyRated) {
+    const updateRating = await Product.updateOne(
+      {
+        ratings: {
+          $elemMatch: alreadyRated,
+        },
+      },
+      {
+        $set: { "ratings.$.star": star },
+      },
+      { new: true }
+    );
+    res.json(updateRating);
+  } else {
+    const rateProduct = await Product.findByIdAndUpdate(
+      prodId,
+      {
+        $push: {
+          ratings: {
+            star: star,
+            postedby: _id,
+          },
+        },
+      },
+      { new: true }
+    );
+    res.json(rateProduct);
+  }
+
+
+  
+} catch (error) {
+  throw new Error(error)
+}
+});
+
+
+  
 // Exporting the controller functions
 module.exports = {
   createProduct,
@@ -130,4 +221,6 @@ module.exports = {
   getAllProduct,
   updateProduct,
   deleteProduct,
+  addToWishlist,
+  rating,
 };
